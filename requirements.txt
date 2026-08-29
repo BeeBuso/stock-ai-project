@@ -1,0 +1,7 @@
+google-genai
+yfinance
+requests
+python-dotenv
+fear-and-greed
+discord.py
+pandas
