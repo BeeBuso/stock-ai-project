@@ -1,0 +1,43 @@
+name: Cloud Day Trade Simulator
+
+# รันทุก 15 นาที ระหว่าง 13:00-20:59 UTC (ครอบคลุมเวลาตลาดอเมริกาเปิด 9:30-16:00 ET
+# ทั้งช่วง EDT และ EST — ตัวสคริปต์เองจะเช็กเวลานิวยอร์กจริงอีกชั้น ถ้านอกเวลาจะข้ามรอบไปเฉยๆ)
+on:
+  schedule:
+    - cron: '*/15 13-20 * * 1-5'
+  workflow_dispatch:   # กดรันเองได้จากหน้า GitHub เพื่อทดสอบ
+
+# ให้สิทธิ์ commit ไฟล์ฐานข้อมูล cloud กลับเข้า repo (เก็บสถานะออเดอร์ไว้ให้รอบถัดไปอ่าน)
+permissions:
+  contents: write
+
+jobs:
+  run-cycle:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: github_cloud
+    steps:
+      - name: ดึงโค้ดจาก repo
+        uses: actions/checkout@v4
+
+      - name: ติดตั้ง Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: ติดตั้งไลบรารีที่ต้องใช้
+        run: pip install -r requirements.txt
+
+      - name: รัน 1 รอบ
+        run: python run_cycle.py
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+      - name: บันทึกฐานข้อมูล cloud กลับเข้า repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f cloud_stock_data.db
+          git diff --cached --quiet || git commit -m "อัปเดตฐานข้อมูล cloud อัตโนมัติ [skip ci]"
+          git push
